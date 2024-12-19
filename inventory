@@ -1,6 +1,4 @@
-mysql_servers:
+[mysql_servers]
   hosts:
     34.45.221.162:
       ansible_user: ansible
-      ansible_ssh_private_key_file: /home/saeed/.ssh/id_rsa
-      ansible_host_key_checking: false
