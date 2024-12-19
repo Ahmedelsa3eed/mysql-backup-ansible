@@ -3,16 +3,19 @@
   hosts: mysql_servers
   become: true
   gather_facts: false
+  vars_files:
+    - vault.yml
   vars:
-    backup_dir: /var/backups/mysql # mount on a separate disk
-    backup_user: zerodowntime
-    backup_password: zerodowntime
-    database_name: zerodowntime
+    backup_dir: /data
     database_host: 127.0.0.1
   tasks:
-    # ensure gzip is installed
-
     # pre-checks
+    - name: Ensure required packages are installed (gzip and gunzip)
+      package:
+        name:
+          - gzip
+        state: present
+
     - name: Ensure backup directory exists
       file:
         path: "{{ backup_dir }}"
