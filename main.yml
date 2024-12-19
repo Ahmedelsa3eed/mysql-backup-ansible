@@ -1,0 +1,67 @@
+---
+- name: MySQL Backup Automation
+  hosts: mysql_servers
+  become: true
+  gather_facts: false
+  vars:
+    backup_dir: /var/backups/mysql # mount on a separate disk
+    backup_user: zerodowntime
+    backup_password: zerodowntime
+    database_name: zerodowntime
+    database_host: 127.0.0.1
+  tasks:
+    # ensure gzip is installed
+
+    # pre-checks
+    - name: Ensure backup directory exists
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Check if MySQL is running
+      shell: systemctl is-active mysql
+      register: mysql_status
+      changed_when: false
+
+    - name: Fail if MySQL is not running
+      fail:
+        msg: "MySQL is not running. Cannot proceed with the backup."
+      when: mysql_status.stdout != "active"
+
+    - name: Perform MySQL backup
+      shell: |
+        backup_name={{ database_name }}_backup_$(date +%F_%H-%M-%S).sql.gz
+        mysqldump -h {{ database_host }} -u {{ backup_user }} -p{{ backup_password }} {{ database_name }} | gzip > {{ backup_dir }}/$backup_name
+        echo $backup_name
+      register: backup_result
+      ignore_errors: yes
+
+    - name: Fail if backup command failed
+      fail:
+        msg: "Backup failed. Check MySQL logs for details."
+      when: backup_result.rc != 0
+    
+    - name: Verify backup file exists
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: "{{ backup_result.stdout }}"
+      register: backup_files
+
+    - name: Fail if no backup files found
+      fail:
+        msg: "No backup files were created. Check the backup process."
+      when: backup_files.matched == 0
+
+    - name: Validate the backup
+      shell: |
+        gunzip -c {{ backup_files.files[0].path }} | mysql -u{{ backup_user }} -p{{ backup_password }} -e "SHOW DATABASES;" | grep {{ database_name }}
+      register: validation_result
+      ignore_errors: yes
+
+    - name: Fail if validation fails
+      fail:
+        msg: "Backup validation failed. Backup file may be corrupted."
+      when: validation_result.rc != 0
