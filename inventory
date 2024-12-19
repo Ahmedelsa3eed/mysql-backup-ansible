@@ -1,2 +1,4 @@
-[mysqlservers]
-mysql01 ansible_host=34.45.221.162
+mysql_servers:
+  hosts:
+    34.45.221.162:
+      ansible_user: ansible
