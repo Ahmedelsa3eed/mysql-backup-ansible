@@ -10,8 +10,14 @@ mysql -h 34.45.221.162 -u zerodowntime -pzerodowntime
 6. restore playbook
 3. specify os types (ubuntu and centos)
 4. precheck disk size!!!
+7. handle InnoDB and MyISAM
 
 done steps
 1. volume for bakup mounted at /data
 2. install needed packages based on os eg..(gzip gunzip)
 5. use ansible vault for secrets
+
+
+
+
+> study different types for backup solutions
