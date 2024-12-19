@@ -1,0 +1,81 @@
+---
+- name: MySQL Restore Automation
+  hosts: mysql_servers
+  become: true
+  gather_facts: false
+  vars_files:
+    - vault.yml
+  vars:
+    restore_dir: /data
+    database_host: 127.0.0.1
+    backup_file_pattern: "{{ database_name }}_backup_*.sql.gz"
+    temp_restore_file: "{{ restore_dir }}/{{ database_name }}_restore.sql"
+  tasks:
+    - name: Ensure required packages are installed (gzip and gunzip)
+      package:
+        name:
+          - gzip
+        state: present
+
+    - name: Check if MySQL is running
+      shell: systemctl is-active mysql
+      register: mysql_status
+      changed_when: false
+
+    - name: Fail if MySQL is not running
+      fail:
+        msg: "MySQL is not running. Cannot proceed with the restoration."
+      when: mysql_status.stdout != "active"
+
+    - name: Find the most recent backup file
+      shell: ls -t {{ restore_dir }}/{{ backup_file_pattern }} | head -n 1
+      register: latest_backup
+      changed_when: false
+    
+    - name: Fail if no backup files found
+      fail:
+        msg: "No valid backup files found in the directory. Check the backup process."
+      when: latest_backup.stdout == ""
+
+    - name: Copy the most recent backup file for safety
+      copy:
+        src: "{{ latest_backup.stdout }}"
+        dest: "{{ latest_backup.stdout }}.original"
+        remote_src: true
+
+    - name: Decompress the most recent backup file (if gzipped)
+      shell: |
+        gunzip -c {{ latest_backup.stdout }} > {{ temp_restore_file }}
+      register: decompress_result
+
+    - name: Restore the database from the decompressed backup
+      shell: |
+        mysql -u{{ backup_user }} -p{{ backup_password }} {{ database_name }} < {{ temp_restore_file }}
+      register: restore_result
+      ignore_errors: yes
+
+    - name: Fail if restoration failed
+      fail:
+        msg: "Database restoration failed. Check MySQL logs for details."
+      when: restore_result.rc != 0
+
+    - name: Clean up temporary decompressed restore file
+      file:
+        path: "{{ temp_restore_file }}"
+        state: absent
+      when: decompress_result.rc == 0
+
+    - name: Validate the restoration by checking the database schema
+      shell: |
+        mysql -u{{ backup_user }} -p{{ backup_password }} -e "SHOW TABLES IN {{ database_name }};"
+      register: validate_result
+      ignore_errors: yes
+
+    - name: Fail if validation fails
+      fail:
+        msg: "Restoration validation failed. The database may not have been restored correctly."
+      when: validate_result.rc != 0
+
+    - name: Success message
+      debug:
+        msg: "Database restoration completed successfully."

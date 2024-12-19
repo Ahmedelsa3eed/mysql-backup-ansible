@@ -34,19 +34,15 @@
         msg: "MySQL is not running. Cannot proceed with the backup."
       when: mysql_status.stdout != "active"
 
+    # main logic
     - name: Perform MySQL backup
       shell: |
         backup_name={{ database_name }}_backup_$(date +%F_%H-%M-%S).sql.gz
-        mysqldump -h {{ database_host }} -u {{ backup_user }} -p{{ backup_password }} {{ database_name }} | gzip > {{ backup_dir }}/$backup_name
+        mysqldump --single-transaction -h {{ database_host }} -u {{ backup_user }} -p{{ backup_password }} {{ database_name }} | gzip > {{ backup_dir }}/$backup_name
         echo $backup_name
       register: backup_result
-      ignore_errors: yes
-
-    - name: Fail if backup command failed
-      fail:
-        msg: "Backup failed. Check MySQL logs for details."
-      when: backup_result.rc != 0
     
+    # post-checks
     - name: Verify backup file exists
       find:
         paths: "{{ backup_dir }}"

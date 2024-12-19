@@ -11,6 +11,7 @@ mysql -h 34.45.221.162 -u zerodowntime -pzerodowntime
 3. specify os types (ubuntu and centos)
 4. precheck disk size!!!
 7. handle InnoDB and MyISAM
+8. prepare a presentation
 
 done steps
 1. volume for bakup mounted at /data
@@ -21,3 +22,15 @@ done steps
 
 
 > study different types for backup solutions
+> Backup Rotation: After a successful restoration,
+  you could add a task to archive or rotate older backups, 
+  ensuring that you don’t run out of storage.
+
+
+tools:
+- mysqldump
+- mysqlpump
+- mydumper/myloader
+- percona XtraBakcup
+- Mysql Enterrise Backup
+- disk snapshots
