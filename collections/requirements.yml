@@ -1,2 +1,4 @@
 collections:
   - name: community.general
+    version: 9.4.0
+    type: galaxy
