@@ -10,7 +10,7 @@
     database_host: 127.0.0.1
   tasks:
     # pre-checks
-    - name: Ensure required packages are installed (gzip and gunzip)
+    - name: Ensure required packages are installed
       package:
         name:
           - gzip
