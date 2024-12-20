@@ -1,6 +1,5 @@
 ---
 - name: Create a file in /home/ansible
-  hosts: mysqlservers
   tasks:
     - name: Ensure /home/ansible/paulatest exists
       ansible.builtin.file:
